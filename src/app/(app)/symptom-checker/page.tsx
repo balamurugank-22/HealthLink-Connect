@@ -8,7 +8,6 @@ import {
   Card,
   CardContent,
   CardDescription,
-  CardFooter,
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
@@ -16,49 +15,9 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
 
-// Keeping SimpleMarkdown as it is useful for displaying lists
-function SimpleMarkdown({ content }: { content: string }) {
-  const lines = content.split('\n').map((line, index) => {
-    const trimmedLine = line.trim();
-    if (trimmedLine.startsWith('* ') || trimmedLine.startsWith('- ')) {
-      return <li key={index}>{trimmedLine.substring(2)}</li>;
-    }
-    if (trimmedLine) {
-       return <p key={index}>{trimmedLine}</p>;
-    }
-    return null;
-  }).filter(Boolean);
-
-  const groupedLines: React.ReactNode[] = [];
-  let currentList: React.ReactNode[] = [];
-
-  lines.forEach((line, index) => {
-    if (line && line.type === 'li') {
-      currentList.push(line);
-    } else {
-      if (currentList.length > 0) {
-        groupedLines.push(
-          <ul key={`ul-${index}`} className="list-disc pl-5 space-y-1 my-2">
-            {currentList}
-          </ul>
-        );
-        currentList = [];
-      }
-      if (line) {
-        groupedLines.push(line);
-      }
-    }
-  });
-
-  if (currentList.length > 0) {
-    groupedLines.push(
-      <ul key="ul-end" className="list-disc pl-5 space-y-1 my-2">
-        {currentList}
-      </ul>
-    );
-  }
-
-  return <>{groupedLines}</>;
+// Renders chat message content, preserving newlines.
+function ChatMessageContent({ content }: { content: string }) {
+  return <div className="whitespace-pre-wrap">{content}</div>;
 }
 
 
@@ -89,7 +48,7 @@ export default function SymptomCheckerPage() {
     {
       id: 0,
       role: 'model',
-      content: 'Hello! I am a basic symptom checker. How can I help you today?\n\n*This is not a substitute for professional medical advice.*'
+      content: 'Hello! I am a basic symptom checker. How can I help you today?\n\nThis is not a substitute for professional medical advice.'
     }
   ]);
   const [input, setInput] = useState('');
@@ -118,7 +77,7 @@ export default function SymptomCheckerPage() {
     setInput(e.target.value);
   };
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!input.trim()) return;
 
@@ -129,11 +88,12 @@ export default function SymptomCheckerPage() {
     };
 
     setMessages((prev) => [...prev, userMessage]);
+    const currentInput = input;
     setInput('');
     
     // Simulate bot thinking and get response
     setTimeout(() => {
-      const botResponseContent = getBotResponse(input);
+      const botResponseContent = getBotResponse(currentInput);
       const botMessage: Message = {
         id: getNextMessageId(),
         role: 'model',
@@ -152,7 +112,9 @@ export default function SymptomCheckerPage() {
             </CardHeader>
             <CardContent>
                 <div className="text-center text-muted-foreground p-8">
-                    <p>This page contains the chatbot functionality.</p>
+                    <Stethoscope className="mx-auto h-12 w-12 text-muted-foreground" />
+                    <p className="mt-4">This page contains the chatbot functionality.</p>
+                    <p className="text-sm">Click the floating button to get started.</p>
                 </div>
             </CardContent>
         </Card>
@@ -207,7 +169,7 @@ export default function SymptomCheckerPage() {
                       }
                     )}
                   >
-                    <SimpleMarkdown content={message.content} />
+                    <ChatMessageContent content={message.content} />
                   </div>
                   {message.role === 'user' && (
                      <Avatar className="h-8 w-8 border flex-shrink-0">
