@@ -41,14 +41,9 @@ const symptomCheckerChatFlow = ai.defineFlow(
       },
     ];
 
-    const messages = history.map((msg) => ({
-      role: msg.role,
-      content: [{ text: msg.content }],
-    }));
-
     const response = await ai.generate({
       model: 'googleai/gemini-2.5-flash',
-      prompt: '', // Pass a valid but empty prompt to avoid the "Unsupported Part" error.
+      prompt: '', // Pass a valid but empty prompt. Genkit creates an empty user message.
       config: {
         safetySettings,
       },
@@ -58,12 +53,18 @@ const symptomCheckerChatFlow = ai.defineFlow(
           parts: [{ text: systemPrompt }],
         };
 
-        // Manually construct the `contents` array for the chat history.
-        // This is what the Google AI API expects.
-        request.contents = messages.map((m: any) => ({
-          role: m.role,
-          parts: m.content,
-        }));
+        // When history is not empty, we overwrite the `contents` that Genkit created.
+        if (history.length > 0) {
+          // Manually construct the `contents` array for the chat history.
+          // This is what the Google AI API expects.
+          request.contents = history.map((msg) => ({
+            role: msg.role,
+            parts: [{ text: msg.content }],
+          }));
+        }
+        // If history is empty, we don't touch `request.contents`. Genkit will have
+        // created `contents` with a single empty user message from `prompt: ''`.
+        // This is what we need to get the model to start the conversation.
 
         return request;
       },
