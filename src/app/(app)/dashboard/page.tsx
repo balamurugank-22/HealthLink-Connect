@@ -5,6 +5,7 @@ import {
   ArrowRight,
   Calendar,
   HeartPulse,
+  Hospital,
   Plus,
   Search,
 } from 'lucide-react';
@@ -40,6 +41,12 @@ const quickActions = [
     icon: Search,
   },
   {
+    title: 'Find a Hospital',
+    description: 'Explore facilities',
+    href: '/hospitals',
+    icon: Hospital,
+  },
+  {
     title: 'Book Appointment',
     description: 'Schedule a visit',
     href: '/appointments',
@@ -60,7 +67,7 @@ export default function DashboardPage() {
           Welcome, {user?.displayName?.split(' ')[0] || 'User'}
         </h1>
 
-        <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-4">
           {quickActions.map((action) => (
             <Card
               key={action.title}

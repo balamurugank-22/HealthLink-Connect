@@ -13,7 +13,8 @@ import { Logo } from './logo';
 const navItems = [
   { href: '/dashboard', label: 'Dashboard' },
   { href: '/symptom-checker', label: 'Symptom Checker' },
-  { href: '/providers', label: 'Find a Doctor' },
+  { href: '/providers', label: 'Doctors' },
+  { href: '/hospitals', label: 'Hospitals' },
   { href: '/appointments', label: 'Appointments' },
 ];
 

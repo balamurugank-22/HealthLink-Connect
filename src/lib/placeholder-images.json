@@ -41,6 +41,18 @@
       "description": "Image of Lakeview Medical Center.",
       "imageUrl": "https://images.unsplash.com/photo-1586773860383-dab5f3bc1bcc?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw1fHxob3NwaXRhbCUyMGJ1aWxkaW5nfGVufDB8fHx8MTc3MjA5NjU5NXww&ixlib=rb-4.1.0&q=80&w=1080",
       "imageHint": "hospital building"
+    },
+    {
+      "id": "hospital-3",
+      "description": "Image of a modern hospital.",
+      "imageUrl": "https://images.unsplash.com/photo-1629904901339-b3b0d2937e33?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw3fHxob3NwaXRhbCUyMGJ1aWxkaW5nfGVufDB8fHx8MTc3MjA5NjU5NXww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "hospital building modern"
+    },
+    {
+      "id": "hospital-4",
+      "description": "Image of a hospital entrance.",
+      "imageUrl": "https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxob3NwaXRhbCUyMGVudHJhbmNlfGVufDB8fHx8MTc3MjE4MTIzNnww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "hospital entrance"
     }
   ]
 }

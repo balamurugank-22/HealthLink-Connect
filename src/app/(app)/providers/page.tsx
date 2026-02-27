@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import Image from 'next/image';
 import { Search, Star } from 'lucide-react';
 
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -17,10 +16,12 @@ import {
 import { Input } from '@/components/ui/input';
 import { doctors } from '@/lib/data';
 import { type Doctor } from '@/lib/definitions';
+import { hospitals } from '@/lib/hospitals';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 
 function DoctorCard({ doctor }: { doctor: Doctor }) {
   const avatar = PlaceHolderImages.find((p) => p.id === doctor.avatarId);
+  const hospital = hospitals.find((h) => h.id === doctor.hospitalId);
   return (
     <Card className="flex flex-col">
       <CardHeader className="flex flex-row items-center gap-4">
@@ -37,7 +38,7 @@ function DoctorCard({ doctor }: { doctor: Doctor }) {
         </div>
       </CardHeader>
       <CardContent className="flex-grow">
-        <p className="text-sm text-muted-foreground">{doctor.hospital}</p>
+        <p className="text-sm text-muted-foreground">{hospital?.name}</p>
         <div className="mt-2 flex items-center gap-1">
           <Star className="h-4 w-4 text-yellow-400 fill-yellow-400" />
           <span className="font-semibold">{doctor.rating}</span>
@@ -56,12 +57,14 @@ function DoctorCard({ doctor }: { doctor: Doctor }) {
 export default function ProvidersPage() {
   const [searchTerm, setSearchTerm] = useState('');
 
-  const filteredDoctors = doctors.filter(
-    (doctor) =>
+  const filteredDoctors = doctors.filter((doctor) => {
+    const hospital = hospitals.find((h) => h.id === doctor.hospitalId);
+    return (
       doctor.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       doctor.specialty.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      doctor.hospital.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+      (hospital && hospital.name.toLowerCase().includes(searchTerm.toLowerCase()))
+    );
+  });
 
   return (
     <div className="container mx-auto p-0">
