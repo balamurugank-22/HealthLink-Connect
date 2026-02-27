@@ -1,8 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { CornerDownLeft, User, Bot } from 'lucide-react';
-import { symptomCheckerChat } from '@/ai/flows/ai-symptom-checker';
+import { Bot, CornerDownLeft, Stethoscope, User, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -14,7 +13,10 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { cn } from '@/lib/utils';
 
+// Keeping SimpleMarkdown as it is useful for displaying lists
 function SimpleMarkdown({ content }: { content: string }) {
   const lines = content.split('\n').map((line, index) => {
     const trimmedLine = line.trim();
@@ -59,18 +61,41 @@ function SimpleMarkdown({ content }: { content: string }) {
   return <>{groupedLines}</>;
 }
 
+
 type Message = {
   id: number;
   role: 'user' | 'model';
   content: string;
 };
 
+// Basic canned responses for the chatbot
+const getBotResponse = (userInput: string): string => {
+  const lowerInput = userInput.toLowerCase();
+  if (lowerInput.includes('headache')) {
+    return 'I see you mentioned a headache. Common advice includes resting in a quiet, dark room and staying hydrated. Have you experienced any other symptoms like dizziness or blurred vision?';
+  }
+  if (lowerInput.includes('fever')) {
+    return 'For a fever, it\'s important to rest and drink plenty of fluids. Over-the-counter medications like acetaminophen can help. What is your temperature?';
+  }
+  if (lowerInput.includes('cough')) {
+    return 'A cough can be caused by many things. You could try honey or a humidifier to soothe your throat. Is the cough dry or are you coughing up phlegm?';
+  }
+  return 'I am a basic chatbot and cannot provide medical advice. Please describe your symptoms, but for any serious concerns, consult a healthcare professional.';
+};
+
+
 export default function SymptomCheckerPage() {
-  const [messages, setMessages] = useState<Message[]>([]);
+  const [messages, setMessages] = useState<Message[]>([
+    {
+      id: 0,
+      role: 'model',
+      content: 'Hello! I am a basic symptom checker. How can I help you today?\n\n*This is not a substitute for professional medical advice.*'
+    }
+  ]);
   const [input, setInput] = useState('');
-  const [isLoading, setIsLoading] = useState(true);
+  const [isOpen, setIsOpen] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const messageIdCounter = useRef(0);
+  const messageIdCounter = useRef(1);
 
   const getNextMessageId = () => {
     const id = messageIdCounter.current;
@@ -83,38 +108,11 @@ export default function SymptomCheckerPage() {
   };
 
   useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
+    if (isOpen) {
+      scrollToBottom();
+    }
+  }, [messages, isOpen]);
 
-  useEffect(() => {
-    const getInitialMessage = async () => {
-      setIsLoading(true);
-      try {
-        const botResponse = await symptomCheckerChat({ history: [] });
-        setMessages([
-          {
-            id: getNextMessageId(),
-            role: 'model',
-            content: botResponse,
-          },
-        ]);
-      } catch (error) {
-        console.error(error);
-        setMessages([
-          {
-            id: getNextMessageId(),
-            role: 'model',
-            content:
-              'Sorry, I encountered an error starting the chat. Please try refreshing.',
-          },
-        ]);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    getInitialMessage();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setInput(e.target.value);
@@ -122,7 +120,7 @@ export default function SymptomCheckerPage() {
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (!input.trim() || isLoading) return;
+    if (!input.trim()) return;
 
     const userMessage: Message = {
       id: getNextMessageId(),
@@ -130,123 +128,124 @@ export default function SymptomCheckerPage() {
       content: input,
     };
 
-    const newMessages: Message[] = [...messages, userMessage];
-    setMessages(newMessages);
+    setMessages((prev) => [...prev, userMessage]);
     setInput('');
-    setIsLoading(true);
-
-    try {
-      const chatHistory = newMessages.map(({ role, content }) => ({
-        role,
-        content,
-      }));
-      const result = await symptomCheckerChat({ history: chatHistory });
+    
+    // Simulate bot thinking and get response
+    setTimeout(() => {
+      const botResponseContent = getBotResponse(input);
       const botMessage: Message = {
         id: getNextMessageId(),
         role: 'model',
-        content: result,
+        content: botResponseContent,
       };
       setMessages((prev) => [...prev, botMessage]);
-    } catch (error) {
-      console.error(error);
-      const errorMessage: Message = {
-        id: getNextMessageId(),
-        role: 'model',
-        content: 'Sorry, I encountered an error. Please try again later.',
-      };
-      setMessages((prev) => [...prev, errorMessage]);
-    } finally {
-      setIsLoading(false);
-    }
+    }, 500);
   };
 
   return (
-    <div className="container mx-auto p-0 flex h-[calc(100vh-10rem)] flex-col">
-      <Card className="flex-1 flex flex-col">
-        <CardHeader>
-          <CardTitle>AI Symptom Checker</CardTitle>
-          <CardDescription>
-            Chat with our AI to get a preliminary analysis of your symptoms.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="flex-1 overflow-y-auto pr-4">
-          <div className="space-y-6">
-            {messages.map((message) => (
-              <div
-                key={message.id}
-                className={`flex items-start gap-4 ${
-                  message.role === 'user' ? 'justify-end' : ''
-                }`}
-              >
-                {message.role === 'model' && (
-                  <Avatar className="h-9 w-9 border flex-shrink-0">
-                    <AvatarFallback>
-                      <Bot className="h-5 w-5" />
-                    </AvatarFallback>
-                  </Avatar>
-                )}
-                <div
-                  className={`max-w-xl rounded-lg px-4 py-3 text-sm ${
-                    message.role === 'user'
-                      ? 'bg-primary text-primary-foreground'
-                      : 'bg-muted'
-                  }`}
-                >
-                  <SimpleMarkdown content={message.content} />
+    <div className="container mx-auto p-0 h-full">
+        <Card className="h-full">
+            <CardHeader>
+                <CardTitle>Symptom Checker</CardTitle>
+                <CardDescription>Click the icon in the bottom right to start a chat with our basic symptom checker.</CardDescription>
+            </CardHeader>
+            <CardContent>
+                <div className="text-center text-muted-foreground p-8">
+                    <p>This page contains the chatbot functionality.</p>
                 </div>
-                {message.role === 'user' && (
-                  <Avatar className="h-9 w-9 border flex-shrink-0">
-                    <AvatarFallback>
-                      <User className="h-5 w-5" />
-                    </AvatarFallback>
-                  </Avatar>
-                )}
-              </div>
-            ))}
-            {isLoading && (
-              <div className="flex items-start gap-4">
-                <Avatar className="h-9 w-9 border">
-                  <AvatarFallback>
-                    <Bot className="h-5 w-5" />
-                  </AvatarFallback>
-                </Avatar>
-                <div className="max-w-xl rounded-lg px-4 py-3 bg-muted">
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <div className="h-2 w-2 bg-primary rounded-full animate-pulse [animation-delay:-0.3s]"></div>
-                    <div className="h-2 w-2 bg-primary rounded-full animate-pulse [animation-delay:-0.15s]"></div>
-                    <div className="h-2 w-2 bg-primary rounded-full animate-pulse"></div>
-                  </div>
-                </div>
-              </div>
-            )}
-            <div ref={messagesEndRef} />
-          </div>
-        </CardContent>
-        <CardFooter className="pt-4 border-t">
-          <form
-            onSubmit={handleSubmit}
-            className="flex w-full items-center space-x-2"
+            </CardContent>
+        </Card>
+
+      <Popover open={isOpen} onOpenChange={setIsOpen}>
+        <PopoverTrigger asChild>
+          <Button
+            className="fixed bottom-8 right-8 h-16 w-16 rounded-full shadow-lg"
+            size="icon"
           >
-            <Input
-              id="message"
-              placeholder="Describe your symptoms..."
-              className="flex-1"
-              autoComplete="off"
-              value={input}
-              onChange={handleInputChange}
-              disabled={isLoading}
-            />
-            <Button
-              type="submit"
-              size="icon"
-              disabled={isLoading || !input.trim()}
-            >
-              <CornerDownLeft className="h-4 w-4" />
-              <span className="sr-only">Send</span>
-            </Button>
-          </form>
-        </CardFooter>
-      </Card>
+            <Stethoscope className="h-8 w-8" />
+            <span className="sr-only">Open Symptom Checker</span>
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent
+          side="top"
+          align="end"
+          className="w-[350px] h-[500px] p-0 mr-2 flex flex-col"
+        >
+          <div className="flex h-full flex-col">
+            <header className="flex items-center justify-between border-b p-3 bg-primary text-primary-foreground rounded-t-lg">
+                <div className="flex items-center gap-2">
+                    <Bot className="h-5 w-5" />
+                    <h3 className="font-semibold text-base">Symptom Checker</h3>
+                </div>
+                <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-primary/80" onClick={() => setIsOpen(false)}>
+                    <X className="h-5 w-5"/>
+                    <span className="sr-only">Close chat</span>
+                </Button>
+            </header>
+            <div className="flex-1 overflow-y-auto p-4 space-y-4">
+              {messages.map((message) => (
+                <div
+                  key={message.id}
+                  className={cn('flex items-start gap-3', {
+                    'justify-end': message.role === 'user',
+                  })}
+                >
+                  {message.role === 'model' && (
+                     <Avatar className="h-8 w-8 border flex-shrink-0">
+                        <AvatarFallback>
+                        <Bot className="h-4 w-4" />
+                        </AvatarFallback>
+                    </Avatar>
+                  )}
+                  <div
+                    className={cn(
+                      'max-w-xs rounded-lg px-3 py-2 text-sm',
+                      {
+                        'bg-primary text-primary-foreground': message.role === 'user',
+                        'bg-muted': message.role === 'model',
+                      }
+                    )}
+                  >
+                    <SimpleMarkdown content={message.content} />
+                  </div>
+                  {message.role === 'user' && (
+                     <Avatar className="h-8 w-8 border flex-shrink-0">
+                        <AvatarFallback>
+                        <User className="h-4 w-4" />
+                        </AvatarFallback>
+                    </Avatar>
+                  )}
+                </div>
+              ))}
+              <div ref={messagesEndRef} />
+            </div>
+            <div className="border-t p-3">
+              <form
+                onSubmit={handleSubmit}
+                className="flex w-full items-center space-x-2"
+              >
+                <Input
+                  id="message"
+                  placeholder="Type a message..."
+                  className="flex-1"
+                  autoComplete="off"
+                  value={input}
+                  onChange={handleInputChange}
+                />
+                <Button
+                  type="submit"
+                  size="icon"
+                  disabled={!input.trim()}
+                >
+                  <CornerDownLeft className="h-4 w-4" />
+                  <span className="sr-only">Send</span>
+                </Button>
+              </form>
+            </div>
+          </div>
+        </PopoverContent>
+      </Popover>
     </div>
   );
 }
