@@ -29,11 +29,26 @@ import { Logo } from '@/components/logo';
 
 const formSchema = z
   .object({
-    name: z.string().min(2, { message: 'Name must be at least 2 characters.' }),
+    name: z
+      .string()
+      .min(2, { message: 'Name must be at least 2 characters.' })
+      .regex(/^[a-zA-Z\s'-]+$/, {
+        message: 'Name can only contain letters, spaces, hyphens, and apostrophes.',
+      }),
     email: z.string().email({ message: 'Please enter a valid email.' }),
     password: z
       .string()
-      .min(8, { message: 'Password must be at least 8 characters.' }),
+      .min(8, { message: 'Password must be at least 8 characters.' })
+      .regex(/[a-z]/, {
+        message: 'Password must contain at least one lowercase letter.',
+      })
+      .regex(/[A-Z]/, {
+        message: 'Password must contain at least one uppercase letter.',
+      })
+      .regex(/[0-9]/, { message: 'Password must contain at least one number.' })
+      .regex(/[^a-zA-Z0-9]/, {
+        message: 'Password must contain at least one special character.',
+      }),
     confirmPassword: z.string(),
   })
   .refine((data) => data.password === data.confirmPassword, {
@@ -60,7 +75,7 @@ export default function RegisterPage() {
     console.log(values);
     toast({
       title: 'Registration Successful',
-      description: "Your account has been created. Please log in.",
+      description: 'Your account has been created. Please log in.',
     });
     router.push('/login');
   };
@@ -138,7 +153,10 @@ export default function RegisterPage() {
       <CardFooter className="text-sm">
         <p className="w-full text-center text-muted-foreground">
           Already have an account?{' '}
-          <Link href="/login" className="font-medium text-primary hover:underline">
+          <Link
+            href="/login"
+            className="font-medium text-primary hover:underline"
+          >
             Log In
           </Link>
         </p>
