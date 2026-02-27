@@ -48,16 +48,24 @@ const symptomCheckerChatFlow = ai.defineFlow(
 
     const response = await ai.generate({
       model: 'googleai/gemini-2.5-flash',
-      prompt: {
-        messages: messages,
-      },
+      prompt: '', // Pass a valid but empty prompt to avoid the "Unsupported Part" error.
       config: {
         safetySettings,
       },
       customize: (request: any) => {
+        // Apply the system prompt
         request.system_instruction = {
           parts: [{ text: systemPrompt }],
         };
+
+        // Manually construct the `contents` array for the chat history.
+        // This is what the Google AI API expects.
+        request.contents = messages.map((m: any) => ({
+          role: m.role,
+          parts: m.content,
+        }));
+
+        return request;
       },
     });
 
