@@ -1,6 +1,7 @@
 'use client';
 
-import { useFormState, useFormStatus } from 'react-dom';
+import { useActionState } from 'react';
+import { useFormStatus } from 'react-dom';
 import { CornerDownLeft, AlertTriangle } from 'lucide-react';
 import { getHealthAnalysis, type HealthAnalysisState } from '@/lib/actions';
 import { Button } from '@/components/ui/button';
@@ -38,7 +39,7 @@ function UrgencyBadge({
 
 export default function SymptomCheckerPage() {
   const initialState: HealthAnalysisState = {};
-  const [state, dispatch] = useFormState(getHealthAnalysis, initialState);
+  const [state, dispatch] = useActionState(getHealthAnalysis, initialState);
 
   return (
     <div className="container mx-auto p-0">
