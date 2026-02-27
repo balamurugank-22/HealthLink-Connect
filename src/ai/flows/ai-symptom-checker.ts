@@ -49,12 +49,15 @@ const symptomCheckerChatFlow = ai.defineFlow(
     const response = await ai.generate({
       model: 'googleai/gemini-2.5-flash',
       prompt: {
-        // The Google AI plugin supports a system prompt.
-        system: systemPrompt,
         messages: messages,
       },
       config: {
         safetySettings,
+      },
+      customize: (request: any) => {
+        request.system_instruction = {
+          parts: [{ text: systemPrompt }],
+        };
       },
     });
 
