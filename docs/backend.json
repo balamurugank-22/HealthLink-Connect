@@ -1,0 +1,407 @@
+{
+  "entities": {
+    "PatientProfile": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "PatientProfile",
+      "type": "object",
+      "description": "Represents a patient's profile information within the HealthLink Connect system, linked to their external authentication ID.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the PatientProfile entity."
+        },
+        "authenticationId": {
+          "type": "string",
+          "description": "Identifier from the external authentication system (e.g., Firebase Auth UID) linked to this patient profile."
+        },
+        "firstName": {
+          "type": "string",
+          "description": "The patient's first name."
+        },
+        "lastName": {
+          "type": "string",
+          "description": "The patient's last name."
+        },
+        "email": {
+          "type": "string",
+          "description": "The patient's email address.",
+          "format": "email"
+        },
+        "dateOfBirth": {
+          "type": "string",
+          "description": "The patient's date of birth in YYYY-MM-DD format.",
+          "format": "date"
+        },
+        "phoneNumber": {
+          "type": "string",
+          "description": "The patient's contact phone number."
+        },
+        "address": {
+          "type": "string",
+          "description": "The patient's residential address."
+        },
+        "gender": {
+          "type": "string",
+          "description": "The patient's gender."
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Timestamp when the patient profile was created.",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "Timestamp when the patient profile was last updated.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "authenticationId",
+        "firstName",
+        "lastName",
+        "email",
+        "dateOfBirth"
+      ]
+    },
+    "Hospital": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Hospital",
+      "type": "object",
+      "description": "Represents a healthcare facility or hospital listed in the provider directory.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Hospital entity."
+        },
+        "name": {
+          "type": "string",
+          "description": "The official name of the hospital or clinic."
+        },
+        "address": {
+          "type": "string",
+          "description": "The street address of the hospital."
+        },
+        "city": {
+          "type": "string",
+          "description": "The city where the hospital is located."
+        },
+        "state": {
+          "type": "string",
+          "description": "The state where the hospital is located."
+        },
+        "zipCode": {
+          "type": "string",
+          "description": "The postal code of the hospital's location."
+        },
+        "phoneNumber": {
+          "type": "string",
+          "description": "The primary contact phone number for the hospital."
+        },
+        "website": {
+          "type": "string",
+          "description": "The official website URL for the hospital.",
+          "format": "uri"
+        },
+        "description": {
+          "type": "string",
+          "description": "A brief description of the hospital, its services, and specialties."
+        },
+        "imageUrl": {
+          "type": "string",
+          "description": "URL to an image representing the hospital (e.g., logo or building photo).",
+          "format": "uri"
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "address",
+        "city",
+        "state",
+        "zipCode"
+      ]
+    },
+    "DoctorProfile": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "DoctorProfile",
+      "type": "object",
+      "description": "Represents a healthcare provider's profile information, including their specialties and affiliation.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the DoctorProfile entity."
+        },
+        "firstName": {
+          "type": "string",
+          "description": "The doctor's first name."
+        },
+        "lastName": {
+          "type": "string",
+          "description": "The doctor's last name."
+        },
+        "email": {
+          "type": "string",
+          "description": "The doctor's professional email address.",
+          "format": "email"
+        },
+        "phoneNumber": {
+          "type": "string",
+          "description": "The doctor's professional contact phone number."
+        },
+        "specialties": {
+          "type": "array",
+          "description": "A list of medical specialties the doctor practices. (Relationship: Doctor N:N Specialty - modeled as array of strings for simplicity)",
+          "items": {
+            "type": "string"
+          }
+        },
+        "bio": {
+          "type": "string",
+          "description": "A brief biography or professional summary of the doctor."
+        },
+        "hospitalId": {
+          "type": "string",
+          "description": "Reference to the Hospital where the doctor primarily practices. (Relationship: Hospital 1:N DoctorProfile)"
+        },
+        "profilePictureUrl": {
+          "type": "string",
+          "description": "URL to the doctor's profile picture.",
+          "format": "uri"
+        },
+        "yearsOfExperience": {
+          "type": "number",
+          "description": "The number of years the doctor has been practicing."
+        },
+        "availabilitySchedule": {
+          "type": "string",
+          "description": "A textual description or reference to the doctor's general availability schedule."
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Timestamp when the doctor profile was created.",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "Timestamp when the doctor profile was last updated.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "firstName",
+        "lastName",
+        "email",
+        "specialties",
+        "hospitalId"
+      ]
+    },
+    "Appointment": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Appointment",
+      "type": "object",
+      "description": "Represents a virtual consultation appointment scheduled between a patient and a doctor.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Appointment entity."
+        },
+        "patientId": {
+          "type": "string",
+          "description": "Reference to the PatientProfile who booked the appointment. (Relationship: PatientProfile 1:N Appointment)"
+        },
+        "doctorId": {
+          "type": "string",
+          "description": "Reference to the DoctorProfile for whom the appointment is booked. (Relationship: DoctorProfile 1:N Appointment)"
+        },
+        "appointmentDateTime": {
+          "type": "string",
+          "description": "The scheduled date and time of the appointment.",
+          "format": "date-time"
+        },
+        "type": {
+          "type": "string",
+          "description": "The type of appointment, e.g., 'Virtual Consultation', 'Follow-up', 'Initial Check-up'."
+        },
+        "status": {
+          "type": "string",
+          "description": "The current status of the appointment, e.g., 'Scheduled', 'Completed', 'Cancelled', 'Rescheduled'."
+        },
+        "reasonForVisit": {
+          "type": "string",
+          "description": "The patient's stated reason for the appointment."
+        },
+        "notes": {
+          "type": "string",
+          "description": "Notes recorded by the doctor or system after the appointment."
+        },
+        "meetingLink": {
+          "type": "string",
+          "description": "The URL for the virtual meeting platform.",
+          "format": "uri"
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Timestamp when the appointment was created.",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "Timestamp when the appointment was last updated.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "patientId",
+        "doctorId",
+        "appointmentDateTime",
+        "type",
+        "status",
+        "reasonForVisit"
+      ]
+    },
+    "SymptomCheckInteraction": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "SymptomCheckInteraction",
+      "type": "object",
+      "description": "Records details of an interaction with the AI symptom checker for a patient.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the SymptomCheckInteraction entity."
+        },
+        "patientId": {
+          "type": "string",
+          "description": "Reference to the PatientProfile who performed the symptom check. (Relationship: PatientProfile 1:N SymptomCheckInteraction)"
+        },
+        "interactionDateTime": {
+          "type": "string",
+          "description": "The date and time when the symptom checker interaction occurred.",
+          "format": "date-time"
+        },
+        "symptomsReported": {
+          "type": "array",
+          "description": "A list of symptoms reported by the patient during the interaction.",
+          "items": {
+            "type": "string"
+          }
+        },
+        "aiOutputRecommendations": {
+          "type": "string",
+          "description": "The detailed recommendations or advice provided by the AI symptom checker."
+        },
+        "severityLevel": {
+          "type": "string",
+          "description": "The assessed severity level of the symptoms, e.g., 'Low', 'Moderate', 'High', 'Urgent'."
+        },
+        "followUpAdvice": {
+          "type": "string",
+          "description": "Specific advice on next steps, such as 'Consult a doctor', 'Monitor symptoms', 'Self-care'."
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Timestamp when the symptom checker interaction record was created.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "patientId",
+        "interactionDateTime",
+        "symptomsReported",
+        "aiOutputRecommendations"
+      ]
+    }
+  },
+  "auth": {
+    "providers": [
+      "password",
+      "anonymous"
+    ]
+  },
+  "firestore": {
+    "structure": [
+      {
+        "path": "/patients/{patientId}",
+        "definition": {
+          "entityName": "PatientProfile",
+          "schema": {
+            "$ref": "#/backend/entities/PatientProfile"
+          },
+          "description": "Stores a patient's profile, uniquely identified by their Firebase Authentication UID. This path ensures strong authorization independence, as the document ID directly corresponds to `request.auth.uid`. Includes denormalized 'authenticationId' matching the document ID."
+        }
+      },
+      {
+        "path": "/hospitals/{hospitalId}",
+        "definition": {
+          "entityName": "Hospital",
+          "schema": {
+            "$ref": "#/backend/entities/Hospital"
+          },
+          "description": "Stores details of healthcare facilities. This is a public collection, allowing any user to read hospital information. Authorization for writes would be restricted to administrative roles.",
+          "params": [
+            {
+              "name": "hospitalId",
+              "description": "The unique identifier for a specific hospital."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/doctors/{doctorId}",
+        "definition": {
+          "entityName": "DoctorProfile",
+          "schema": {
+            "$ref": "#/backend/entities/DoctorProfile"
+          },
+          "description": "Stores profiles of healthcare providers. This is a public collection, allowing any user to read doctor information. Includes denormalized 'hospitalId' for affiliation. Authorization for writes would be restricted to administrative roles.",
+          "params": [
+            {
+              "name": "doctorId",
+              "description": "The unique identifier for a specific doctor."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/appointments/{appointmentId}",
+        "definition": {
+          "entityName": "Appointment",
+          "schema": {
+            "$ref": "#/backend/entities/Appointment"
+          },
+          "description": "Stores details of virtual consultation appointments. This collection facilitates collaborative access. It includes denormalized 'patientId' and 'doctorId' fields for robust authorization independence, allowing direct rule checks without `get()` operations. Both patients and doctors can query for their respective appointments.",
+          "params": [
+            {
+              "name": "appointmentId",
+              "description": "The unique identifier for a specific appointment."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/patients/{patientId}/symptomChecks/{symptomCheckId}",
+        "definition": {
+          "entityName": "SymptomCheckInteraction",
+          "schema": {
+            "$ref": "#/backend/entities/SymptomCheckInteraction"
+          },
+          "description": "Stores records of AI symptom checker interactions for a specific patient. This is a subcollection under the patient's profile, ensuring strong path-based ownership. The 'patientId' in the path directly maps to `request.auth.uid`, making authorization simple and atomic. Includes denormalized 'patientId' field for consistency.",
+          "params": [
+            {
+              "name": "patientId",
+              "description": "The unique identifier for the patient, corresponding to their Firebase Authentication UID."
+            },
+            {
+              "name": "symptomCheckId",
+              "description": "The unique identifier for a specific symptom check interaction."
+            }
+          ]
+        }
+      }
+    ],
+    "reasoning": "The Firestore structure prioritizes robust security, scalability, and debuggability by adhering to the core design principles, especially Authorization Independence and Structural Segregation. \n\n**Authorization Independence:**\n1.  **PatientProfile:** Each patient's profile is stored at `/patients/{patientId}`, where `{patientId}` is the Firebase Authentication UID (`request.auth.uid`). This directly links the document ownership to the authenticated user via the path, making authorization rules simple and atomic: `allow read, write: if request.auth.uid == patientId;`. No `get()` operations are needed to determine ownership.\n2.  **SymptomCheckInteraction:** These interactions are nested under the patient's profile at `/patients/{patientId}/symptomChecks/{symptomCheckId}`. The `patientId` in the path again ensures direct authorization based on `request.auth.uid`. The `SymptomCheckInteraction` document also contains a `patientId` field, reinforcing ownership and supporting potential denormalization scenarios or easier data migration, though the path is the primary authorization mechanism here. This eliminates any need for cross-document `get()` calls.\n3.  **Appointment:** Appointments are stored in a top-level collection `/appointments/{appointmentId}`. The `Appointment` entity naturally includes `patientId` and `doctorId`. These fields are crucial for authorization and are denormalized within the document itself. Access rules will directly check `request.auth.uid == resource.data.patientId` or `request.auth.uid == resource.data.doctorId`. This avoids any `get()` calls to `PatientProfile` or `DoctorProfile` documents to determine who can access an appointment.\n4.  **Hospital & DoctorProfile:** These collections are designed for public read access. Therefore, they have no specific user authorization dependencies, inherently achieving authorization independence for reads. Any write operations would be restricted to administrative roles (not detailed in this scope but would follow the DBAC principle via a separate `/roles_admin/{uid}` collection).\n\n**Queryable Authorization Patterns (QAPs):**\n1.  **PatientProfile & SymptomCheckInteraction:** Patients can easily retrieve their own profile (`/patients/{request.auth.uid}`) and list their own symptom check interactions (`/patients/{request.auth.uid}/symptomChecks`). The rules directly match the `uid` to the path parameter, making these queries secure and efficient, as they do not require filtering after retrieving data. The structure inherently ensures that `list` operations only return data owned by the authenticated user.\n2.  **Appointment:** Both patients and doctors can query for their respective appointments using `where('patientId', '==', request.auth.uid)` or `where('doctorId', '==', request.auth.uid)`. Since `patientId` and `doctorId` are fields directly on the `Appointment` document, Firestore rules can validate these queries efficiently without needing to filter results client-side, enabling secure `list` operations.\n3.  **Hospital & DoctorProfile:** These collections are publicly readable, so any user can list all hospitals or doctors. This is a valid QAP for public data, as no specific user-based filtering or authorization is required.\n\n**Structural Segregation:**\n*   `patients`: Dedicated to private patient data.\n*   `hospitals`: Dedicated to public hospital directory data.\n*   `doctors`: Dedicated to public doctor profile data.\n*   `appointments`: Dedicated to collaborative, scheduled events between patients and doctors.\n*   `symptomChecks`: Dedicated to private, patient-specific AI interactions.\n\nEach collection (or subcollection) maintains a homogeneous security posture, simplifying security rules immensely by moving access control logic into the data structure itself. For instance, data under `/patients/{patientId}` is always considered private to that patient, while data under `/hospitals` is always public. This significantly improves debuggability and reduces the surface area for security vulnerabilities."
+  }
+}

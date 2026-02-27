@@ -1,0 +1,183 @@
+/**
+ * Core Philosophy: This ruleset implements a dual-access security model. It
+ * provides strict user-ownership for sensitive patient data, ensuring that
+ * only the authenticated patient can access their own information. For public
+ * provider data like hospitals and doctors, it allows open read access to
+ * everyone while prohibiting all client-side modifications.
+ *
+ * Data Structure: The data is organized into logical, top-level collections:
+ * - /patients/{patientId}: Stores private user profiles, where the document
+ *   ID matches the user's Firebase Authentication UID. Contains a subcollection
+ *   for symptom checks.
+ * - /hospitals/{hospitalId}: Public directory of healthcare facilities.
+ * - /doctors/{doctorId}: Public directory of healthcare providers.
+ * - /appointments/{appointmentId}: Collaborative documents shared between a
+ *   specific patient and doctor.
+ *
+ * Key Security Decisions:
+ * - Patient data (`/patients/{patientId}` and subcollections) is strictly
+ *   private and can only be accessed by the authenticated owner.
+ * - Provider data (`/hospitals` and `/doctors`) is globally readable but
+ *   cannot be written to by clients, securing it for administrative control.
+ * - Appointment access is restricted to the two participants (patient and doctor)
+ *   listed within the appointment document.
+ * - Openly listing documents is denied for sensitive collections like
+ *   `/patients` and `/appointments` to prevent data leakage. Clients must
+ *   fetch their own data using specific, authorized queries or direct document
+ *   gets.
+ *
+ * Denormalization for Authorization: This ruleset relies heavily on
+ * denormalization for fast and secure access control, avoiding costly `get()`
+ * calls.
+ * - The `patientId` in the path `/patients/{patientId}` is the source of truth
+ *   for ownership.
+ * - `Appointment` documents contain `patientId` and `doctorId` fields,
+ *   allowing rules to grant access without looking up other documents.
+ * - `SymptomCheckInteraction` documents contain a `patientId` field that must
+ *   match the parent document's ID, ensuring relational integrity.
+ *
+ * Structural Segregation: The use of separate top-level collections for
+ * private patient data versus public provider data creates a clear security
+ * boundary, simplifying rules and preventing accidental exposure of sensitive
+ * information.
+ */
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper Functions
+    // ----------------------------------------------------------------
+
+    /**
+     * Checks if a user is authenticated.
+     */
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    /**
+     * Checks if the currently authenticated user's UID matches the provided userId.
+     * This is the primary function for enforcing document ownership.
+     */
+    function isOwner(userId) {
+      return request.auth.uid == userId;
+    }
+
+    /**
+     * A robust check for update/delete operations, ensuring the user is the
+     * owner and that the document actually exists before the operation.
+     */
+    function isExistingOwner(userId) {
+      return isOwner(userId) && resource != null;
+    }
+
+    /**
+     * Checks if the authenticated user is a participant (either the patient or
+     * the doctor) in a given appointment.
+     */
+    function isParticipant(appointment) {
+      return request.auth.uid == appointment.patientId || request.auth.uid == appointment.doctorId;
+    }
+
+    /**
+     * Validates that the user creating an appointment is the patient they claim to be.
+     */
+    function isPatientOnCreate() {
+      return request.resource.data.patientId == request.auth.uid;
+    }
+
+    /**
+     * Ensures that the core participants of an appointment cannot be changed
+     * after it has been created.
+     */
+    function appointmentParticipantsAreImmutable() {
+      return request.resource.data.patientId == resource.data.patientId && request.resource.data.doctorId == resource.data.doctorId;
+    }
+
+    // Collection Rules
+    // ----------------------------------------------------------------
+
+    /**
+     * @description Controls access to a patient's private profile. The document
+     *              ID must match the authenticated user's ID.
+     * @path        /patients/{patientId}
+     * @allow       (create) An authenticated user can create their own profile.
+     * @deny        (update) A user tries to update another user's profile.
+     * @principle   Restricts access to a user's own data tree using path-based security.
+     */
+    match /patients/{patientId} {
+      allow get: if isOwner(patientId);
+      allow list: if false;
+      allow create: if isOwner(patientId) && request.resource.data.authenticationId == patientId;
+      allow update: if isExistingOwner(patientId) && request.resource.data.authenticationId == resource.data.authenticationId;
+      allow delete: if isExistingOwner(patientId);
+
+      /**
+       * @description Controls access to a patient's private symptom check history.
+       * @path        /patients/{patientId}/symptomChecks/{symptomCheckId}
+       * @allow       (list) A user lists their own symptom check records.
+       * @deny        (get) A user tries to read another user's symptom check record.
+       * @principle   Inherits ownership from the parent document path for strong data isolation.
+       */
+      match /symptomChecks/{symptomCheckId} {
+        allow get: if isOwner(patientId);
+        allow list: if isOwner(patientId);
+        allow create: if isOwner(patientId) && request.resource.data.patientId == patientId;
+        allow update: if isExistingOwner(patientId) && request.resource.data.patientId == resource.data.patientId;
+        allow delete: if isExistingOwner(patientId);
+      }
+    }
+
+    /**
+     * @description Controls access to the public directory of hospitals. This data
+     *              is world-readable but cannot be modified by clients.
+     * @path        /hospitals/{hospitalId}
+     * @allow       (get, list) Any user, including unauthenticated ones, can view hospital details.
+     * @deny        (create, update, delete) Any client-side attempt to modify hospital data is blocked.
+     * @principle   Protects public data by making it read-only for clients.
+     */
+    match /hospitals/{hospitalId} {
+      allow get: if true;
+      allow list: if true;
+      allow create: if false;
+      allow update: if false;
+      allow delete: if false;
+    }
+
+    /**
+     * @description Controls access to the public directory of doctors. This data
+     *              is world-readable but cannot be modified by clients.
+     * @path        /doctors/{doctorId}
+     * @allow       (get, list) Any user, including unauthenticated ones, can view doctor profiles.
+     * @deny        (create, update, delete) Any client-side attempt to modify doctor data is blocked.
+     * @principle   Protects public data by making it read-only for clients.
+     */
+    match /doctors/{doctorId} {
+      allow get: if true;
+      allow list: if true;
+      allow create: if false;
+      allow update: if false;
+      allow delete: if false;
+    }
+
+    /**
+     * @description Controls access to appointments, which are collaborative documents
+     *              shared between a patient and a doctor.
+     * @path        /appointments/{appointmentId}
+     * @allow       (get) A patient or doctor involved in the appointment reads its details.
+     * @deny        (list) A user tries to list all appointments in the system.
+     * @principle   Enforces collaborative access by checking for the user's UID in
+     *              the document's `patientId` or `doctorId` fields.
+     */
+    match /appointments/{appointmentId} {
+      // NOTE: list is denied to prevent leaking all appointment data. Clients must
+      // build specific queries (e.g., `where('patientId', '==', auth.uid)`) to
+      // securely fetch their own appointments.
+      allow get: if isSignedIn() && isParticipant(resource.data);
+      allow list: if false;
+      allow create: if isSignedIn() && isPatientOnCreate();
+      allow update: if resource != null && isParticipant(resource.data) && appointmentParticipantsAreImmutable();
+      allow delete: if resource != null && isParticipant(resource.data);
+    }
+  }
+}
