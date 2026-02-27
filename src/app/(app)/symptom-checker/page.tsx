@@ -1,11 +1,8 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { CornerDownLeft, AlertTriangle, User, Bot } from 'lucide-react';
-import {
-  aiSymptomChecker,
-  type AiSymptomCheckerOutput,
-} from '@/ai/flows/ai-symptom-checker';
+import { CornerDownLeft, User, Bot } from 'lucide-react';
+import { symptomCheckerChat } from '@/ai/flows/ai-symptom-checker';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -16,68 +13,62 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+
+function SimpleMarkdown({ content }: { content: string }) {
+  const lines = content.split('\n').map((line, index) => {
+    const trimmedLine = line.trim();
+    if (trimmedLine.startsWith('* ') || trimmedLine.startsWith('- ')) {
+      return <li key={index}>{trimmedLine.substring(2)}</li>;
+    }
+    if (trimmedLine) {
+       return <p key={index}>{trimmedLine}</p>;
+    }
+    return null;
+  }).filter(Boolean);
+
+  const groupedLines: React.ReactNode[] = [];
+  let currentList: React.ReactNode[] = [];
+
+  lines.forEach((line, index) => {
+    if (line && line.type === 'li') {
+      currentList.push(line);
+    } else {
+      if (currentList.length > 0) {
+        groupedLines.push(
+          <ul key={`ul-${index}`} className="list-disc pl-5 space-y-1 my-2">
+            {currentList}
+          </ul>
+        );
+        currentList = [];
+      }
+      if (line) {
+        groupedLines.push(line);
+      }
+    }
+  });
+
+  if (currentList.length > 0) {
+    groupedLines.push(
+      <ul key="ul-end" className="list-disc pl-5 space-y-1 my-2">
+        {currentList}
+      </ul>
+    );
+  }
+
+  return <>{groupedLines}</>;
+}
 
 type Message = {
   id: number;
-  role: 'user' | 'bot';
-  content: string | React.ReactNode;
+  role: 'user' | 'model';
+  content: string;
 };
 
-function UrgencyBadge({
-  urgency,
-}: {
-  urgency: 'low' | 'medium' | 'high' | 'emergency';
-}) {
-  const variant =
-    urgency === 'high' || urgency === 'emergency' ? 'destructive' : 'secondary';
-  return <Badge variant={variant}>{urgency.toUpperCase()}</Badge>;
-}
-
-function BotMessage({ analysis }: { analysis: AiSymptomCheckerOutput }) {
-  return (
-    <div className="w-full rounded-lg bg-muted/50 p-4 space-y-4">
-      <div className="flex justify-between items-start">
-        <h3 className="font-semibold text-lg">AI Analysis</h3>
-        <UrgencyBadge urgency={analysis.urgencyLevel} />
-      </div>
-      {analysis.seekMedicalHelp && (
-        <div className="flex items-start space-x-3 rounded-lg border border-yellow-300 bg-yellow-50 p-3 text-yellow-900">
-          <AlertTriangle className="h-5 w-5 mt-0.5 flex-shrink-0" />
-          <p className="text-sm font-medium">
-            Based on your symptoms, it is recommended to seek professional
-            medical attention.
-          </p>
-        </div>
-      )}
-      <div>
-        <h4 className="font-semibold">Recommendations:</h4>
-        <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-muted-foreground">
-          {analysis.recommendations.map((rec, index) => (
-            <li key={index}>{rec}</li>
-          ))}
-        </ul>
-      </div>
-      <div className="rounded-md border border-dashed p-3 text-xs text-muted-foreground">
-        <p className="font-semibold">Disclaimer:</p>
-        <p>{analysis.disclaimer}</p>
-      </div>
-    </div>
-  );
-}
-
 export default function SymptomCheckerPage() {
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      id: 1,
-      role: 'bot',
-      content:
-        'Hello! I am an AI symptom checker. Please describe your symptoms, and I will provide a preliminary analysis. This is not a substitute for professional medical advice.',
-    },
-  ]);
+  const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
@@ -87,6 +78,36 @@ export default function SymptomCheckerPage() {
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
+
+  useEffect(() => {
+    const getInitialMessage = async () => {
+      setIsLoading(true);
+      try {
+        const botResponse = await symptomCheckerChat({ history: [] });
+        setMessages([
+          {
+            id: Date.now(),
+            role: 'model',
+            content: botResponse,
+          },
+        ]);
+      } catch (error) {
+        console.error(error);
+        setMessages([
+          {
+            id: Date.now(),
+            role: 'model',
+            content:
+              'Sorry, I encountered an error starting the chat. Please try refreshing.',
+          },
+        ]);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    getInitialMessage();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setInput(e.target.value);
@@ -101,23 +122,29 @@ export default function SymptomCheckerPage() {
       role: 'user',
       content: input,
     };
-    setMessages((prev) => [...prev, userMessage]);
+
+    const newMessages: Message[] = [...messages, userMessage];
+    setMessages(newMessages);
     setInput('');
     setIsLoading(true);
 
     try {
-      const result = await aiSymptomChecker({ symptoms: input });
+      const chatHistory = newMessages.map(({ role, content }) => ({
+        role,
+        content,
+      }));
+      const result = await symptomCheckerChat({ history: chatHistory });
       const botMessage: Message = {
         id: Date.now() + 1,
-        role: 'bot',
-        content: <BotMessage analysis={result} />,
+        role: 'model',
+        content: result,
       };
       setMessages((prev) => [...prev, botMessage]);
     } catch (error) {
       console.error(error);
       const errorMessage: Message = {
         id: Date.now() + 1,
-        role: 'bot',
+        role: 'model',
         content: 'Sorry, I encountered an error. Please try again later.',
       };
       setMessages((prev) => [...prev, errorMessage]);
@@ -144,30 +171,24 @@ export default function SymptomCheckerPage() {
                   message.role === 'user' ? 'justify-end' : ''
                 }`}
               >
-                {message.role === 'bot' && (
-                  <Avatar className="h-9 w-9 border">
+                {message.role === 'model' && (
+                  <Avatar className="h-9 w-9 border flex-shrink-0">
                     <AvatarFallback>
                       <Bot className="h-5 w-5" />
                     </AvatarFallback>
                   </Avatar>
                 )}
                 <div
-                  className={`max-w-xl rounded-lg px-4 py-3 ${
+                  className={`max-w-xl rounded-lg px-4 py-3 text-sm ${
                     message.role === 'user'
                       ? 'bg-primary text-primary-foreground'
-                      : typeof message.content === 'string'
-                      ? 'bg-muted'
-                      : ''
+                      : 'bg-muted'
                   }`}
                 >
-                  {typeof message.content === 'string' ? (
-                    <p className="text-sm">{message.content}</p>
-                  ) : (
-                    message.content
-                  )}
+                  <SimpleMarkdown content={message.content} />
                 </div>
                 {message.role === 'user' && (
-                  <Avatar className="h-9 w-9 border">
+                  <Avatar className="h-9 w-9 border flex-shrink-0">
                     <AvatarFallback>
                       <User className="h-5 w-5" />
                     </AvatarFallback>
