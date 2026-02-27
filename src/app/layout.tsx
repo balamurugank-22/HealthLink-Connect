@@ -1,11 +1,12 @@
+'use client';
+
 import type { Metadata } from 'next';
 import './globals.css';
 import { Toaster } from '@/components/ui/toaster';
+import { FirebaseClientProvider } from '@/firebase/client-provider';
 
-export const metadata: Metadata = {
-  title: 'HealthLink Connect',
-  description: 'Your connection to modern healthcare.',
-};
+// This is a client component, so we can't use Metadata export.
+// We can set the title in the useEffect below if needed, or in a child server component.
 
 export default function RootLayout({
   children,
@@ -15,6 +16,7 @@ export default function RootLayout({
   return (
     <html lang="en" className="light">
       <head>
+        <title>HealthLink Connect</title>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link
           rel="preconnect"
@@ -27,8 +29,10 @@ export default function RootLayout({
         />
       </head>
       <body className="font-body antialiased">
-        {children}
-        <Toaster />
+        <FirebaseClientProvider>
+          {children}
+          <Toaster />
+        </FirebaseClientProvider>
       </body>
     </html>
   );

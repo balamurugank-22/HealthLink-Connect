@@ -2,9 +2,11 @@
 
 import { zodResolver } from '@hookform/resolvers/zod';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import * as z from 'zod';
+import { signInWithEmailAndPassword } from 'firebase/auth';
+import { useAuth } from '@/firebase';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -29,14 +31,14 @@ import { Logo } from '@/components/logo';
 
 const formSchema = z.object({
   email: z.string().email({ message: 'Please enter a valid email.' }),
-  password: z
-    .string()
-    .min(1, { message: 'Please enter your password.' }),
+  password: z.string().min(1, { message: 'Please enter your password.' }),
 });
 
 export default function LoginPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { toast } = useToast();
+  const auth = useAuth();
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -46,16 +48,26 @@ export default function LoginPage() {
     },
   });
 
-  const onSubmit = (values: z.infer<typeof formSchema>) => {
-    // Simulate API call
-    console.log(values);
-    toast({
-      title: 'Login Successful',
-      description: "Welcome back! Redirecting you to your dashboard.",
-    });
-    // In a real app, you'd handle auth state here
-    localStorage.setItem('isAuthenticated', 'true');
-    router.push('/dashboard');
+  const onSubmit = async (values: z.infer<typeof formSchema>) => {
+    try {
+      await signInWithEmailAndPassword(auth, values.email, values.password);
+      toast({
+        title: 'Login Successful',
+        description: 'Welcome back! Redirecting you now.',
+      });
+      const redirectUrl = searchParams.get('redirect') || '/dashboard';
+      router.push(redirectUrl);
+    } catch (error: any) {
+      console.error('Login Error:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Login Failed',
+        description:
+          error.code === 'auth/invalid-credential'
+            ? 'Invalid email or password.'
+            : 'An unexpected error occurred. Please try again.',
+      });
+    }
   };
 
   return (
@@ -69,7 +81,10 @@ export default function LoginPage() {
       </CardHeader>
       <CardContent>
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+          <form
+            onSubmit={form.handleSubmit(onSubmit)}
+            className="space-y-4"
+          >
             <FormField
               control={form.control}
               name="email"
@@ -77,7 +92,11 @@ export default function LoginPage() {
                 <FormItem>
                   <FormLabel>Email</FormLabel>
                   <FormControl>
-                    <Input placeholder="name@example.com" {...field} />
+                    <Input
+                      placeholder="name@example.com"
+                      {...field}
+                      disabled={form.formState.isSubmitting}
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -90,19 +109,32 @@ export default function LoginPage() {
                 <FormItem>
                   <div className="flex justify-between items-baseline">
                     <FormLabel>Password</FormLabel>
-                    <Button variant="link" asChild className="p-0 h-auto text-sm">
+                    <Button
+                      variant="link"
+                      asChild
+                      className="p-0 h-auto text-sm"
+                    >
                       <Link href="#">Forgot password?</Link>
                     </Button>
                   </div>
                   <FormControl>
-                    <Input type="password" placeholder="••••••••" {...field} />
+                    <Input
+                      type="password"
+                      placeholder="••••••••"
+                      {...field}
+                      disabled={form.formState.isSubmitting}
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
-            <Button type="submit" className="w-full">
-              Log In
+            <Button
+              type="submit"
+              className="w-full"
+              disabled={form.formState.isSubmitting}
+            >
+              {form.formState.isSubmitting ? 'Logging In...' : 'Log In'}
             </Button>
           </form>
         </Form>
@@ -110,7 +142,10 @@ export default function LoginPage() {
       <CardFooter className="text-sm">
         <p className="w-full text-center text-muted-foreground">
           Don&apos;t have an account?{' '}
-          <Link href="/register" className="font-medium text-primary hover:underline">
+          <Link
+            href="/register"
+            className="font-medium text-primary hover:underline"
+          >
             Register
           </Link>
         </p>

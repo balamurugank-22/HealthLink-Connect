@@ -6,10 +6,6 @@
       "type": "object",
       "description": "Represents a patient's profile information within the HealthLink Connect system, linked to their external authentication ID.",
       "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the PatientProfile entity."
-        },
         "authenticationId": {
           "type": "string",
           "description": "Identifier from the external authentication system (e.g., Firebase Auth UID) linked to this patient profile."
@@ -56,12 +52,10 @@
         }
       },
       "required": [
-        "id",
         "authenticationId",
         "firstName",
         "lastName",
-        "email",
-        "dateOfBirth"
+        "email"
       ]
     },
     "Hospital": {

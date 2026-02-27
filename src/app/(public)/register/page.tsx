@@ -5,7 +5,10 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import * as z from 'zod';
+import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
+import { doc } from 'firebase/firestore';
 
+import { useAuth, useFirestore, setDocumentNonBlocking } from '@/firebase';
 import { Button } from '@/components/ui/button';
 import {
   Form,
@@ -26,6 +29,7 @@ import {
 } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { Logo } from '@/components/logo';
+import { serverTimestamp } from 'firebase/firestore';
 
 const formSchema = z
   .object({
@@ -33,7 +37,8 @@ const formSchema = z
       .string()
       .min(2, { message: 'Name must be at least 2 characters.' })
       .regex(/^[a-zA-Z\s'-]+$/, {
-        message: 'Name can only contain letters, spaces, hyphens, and apostrophes.',
+        message:
+          'Name can only contain letters, spaces, hyphens, and apostrophes.',
       }),
     email: z.string().email({ message: 'Please enter a valid email.' }),
     password: z
@@ -59,6 +64,8 @@ const formSchema = z
 export default function RegisterPage() {
   const router = useRouter();
   const { toast } = useToast();
+  const auth = useAuth();
+  const firestore = useFirestore();
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -70,14 +77,53 @@ export default function RegisterPage() {
     },
   });
 
-  const onSubmit = (values: z.infer<typeof formSchema>) => {
-    // Simulate API call
-    console.log(values);
-    toast({
-      title: 'Registration Successful',
-      description: 'Your account has been created. Please log in.',
-    });
-    router.push('/login');
+  const onSubmit = async (values: z.infer<typeof formSchema>) => {
+    try {
+      const userCredential = await createUserWithEmailAndPassword(
+        auth,
+        values.email,
+        values.password
+      );
+
+      const user = userCredential.user;
+
+      // Update user profile
+      await updateProfile(user, {
+        displayName: values.name,
+      });
+
+      // Create patient profile in Firestore
+      const [firstName, ...lastNameParts] = values.name.split(' ');
+      const lastName = lastNameParts.join(' ');
+
+      const patientProfile = {
+        authenticationId: user.uid,
+        firstName: firstName,
+        lastName: lastName,
+        email: values.email,
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      };
+
+      const patientDocRef = doc(firestore, 'patients', user.uid);
+      setDocumentNonBlocking(patientDocRef, patientProfile, { merge: true });
+
+      toast({
+        title: 'Registration Successful',
+        description: 'Your account has been created. Please log in.',
+      });
+      router.push('/login');
+    } catch (error: any) {
+      console.error('Registration Error:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Registration Failed',
+        description:
+          error.code === 'auth/email-already-in-use'
+            ? 'This email is already registered.'
+            : 'An unexpected error occurred. Please try again.',
+      });
+    }
   };
 
   return (
@@ -91,7 +137,10 @@ export default function RegisterPage() {
       </CardHeader>
       <CardContent>
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+          <form
+            onSubmit={form.handleSubmit(onSubmit)}
+            className="space-y-4"
+          >
             <FormField
               control={form.control}
               name="name"
@@ -99,7 +148,11 @@ export default function RegisterPage() {
                 <FormItem>
                   <FormLabel>Full Name</FormLabel>
                   <FormControl>
-                    <Input placeholder="John Doe" {...field} />
+                    <Input
+                      placeholder="John Doe"
+                      {...field}
+                      disabled={form.formState.isSubmitting}
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -112,7 +165,11 @@ export default function RegisterPage() {
                 <FormItem>
                   <FormLabel>Email</FormLabel>
                   <FormControl>
-                    <Input placeholder="name@example.com" {...field} />
+                    <Input
+                      placeholder="name@example.com"
+                      {...field}
+                      disabled={form.formState.isSubmitting}
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -125,7 +182,12 @@ export default function RegisterPage() {
                 <FormItem>
                   <FormLabel>Password</FormLabel>
                   <FormControl>
-                    <Input type="password" placeholder="••••••••" {...field} />
+                    <Input
+                      type="password"
+                      placeholder="••••••••"
+                      {...field}
+                      disabled={form.formState.isSubmitting}
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -138,14 +200,25 @@ export default function RegisterPage() {
                 <FormItem>
                   <FormLabel>Confirm Password</FormLabel>
                   <FormControl>
-                    <Input type="password" placeholder="••••••••" {...field} />
+                    <Input
+                      type="password"
+                      placeholder="••••••••"
+                      {...field}
+                      disabled={form.formState.isSubmitting}
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
-            <Button type="submit" className="w-full">
-              Create Account
+            <Button
+              type="submit"
+              className="w-full"
+              disabled={form.formState.isSubmitting}
+            >
+              {form.formState.isSubmitting
+                ? 'Creating Account...'
+                : 'Create Account'}
             </Button>
           </form>
         </Form>

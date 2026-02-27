@@ -1,30 +1,25 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { Logo } from '@/components/logo';
 import { Nav } from '@/components/nav';
 import { UserNav } from '@/components/user-nav';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useUser } from '@/firebase';
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
+  const { user, isUserLoading } = useUser();
 
   useEffect(() => {
-    // This is a simulation of auth check. In a real app, this would be more robust.
-    const loggedIn = localStorage.getItem('isAuthenticated') === 'true';
-    if (!loggedIn) {
+    if (!isUserLoading && !user) {
       router.replace(`/login?redirect=${pathname}`);
-    } else {
-      setIsAuthenticated(true);
     }
-    setIsLoading(false);
-  }, [router, pathname]);
+  }, [isUserLoading, user, router, pathname]);
 
-  if (isLoading || !isAuthenticated) {
+  if (isUserLoading || !user) {
     return (
       <div className="flex min-h-screen w-full flex-col">
         <header className="sticky top-0 flex h-16 items-center gap-4 border-b bg-card px-4 md:px-6">
