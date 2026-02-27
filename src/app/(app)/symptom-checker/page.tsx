@@ -70,6 +70,13 @@ export default function SymptomCheckerPage() {
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messageIdCounter = useRef(0);
+
+  const getNextMessageId = () => {
+    const id = messageIdCounter.current;
+    messageIdCounter.current += 1;
+    return id;
+  };
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -86,7 +93,7 @@ export default function SymptomCheckerPage() {
         const botResponse = await symptomCheckerChat({ history: [] });
         setMessages([
           {
-            id: Date.now(),
+            id: getNextMessageId(),
             role: 'model',
             content: botResponse,
           },
@@ -95,7 +102,7 @@ export default function SymptomCheckerPage() {
         console.error(error);
         setMessages([
           {
-            id: Date.now(),
+            id: getNextMessageId(),
             role: 'model',
             content:
               'Sorry, I encountered an error starting the chat. Please try refreshing.',
@@ -118,7 +125,7 @@ export default function SymptomCheckerPage() {
     if (!input.trim() || isLoading) return;
 
     const userMessage: Message = {
-      id: Date.now(),
+      id: getNextMessageId(),
       role: 'user',
       content: input,
     };
@@ -135,7 +142,7 @@ export default function SymptomCheckerPage() {
       }));
       const result = await symptomCheckerChat({ history: chatHistory });
       const botMessage: Message = {
-        id: Date.now() + 1,
+        id: getNextMessageId(),
         role: 'model',
         content: result,
       };
@@ -143,7 +150,7 @@ export default function SymptomCheckerPage() {
     } catch (error) {
       console.error(error);
       const errorMessage: Message = {
-        id: Date.now() + 1,
+        id: getNextMessageId(),
         role: 'model',
         content: 'Sorry, I encountered an error. Please try again later.',
       };
